@@ -57,7 +57,8 @@ class RawEditor extends StatefulWidget {
     this.embedBuilder,
   )   : assert(maxHeight == null || maxHeight > 0, 'maxHeight cannot be null'),
         assert(minHeight == null || minHeight >= 0, 'minHeight cannot be null'),
-        assert(maxHeight == null || minHeight == null || maxHeight >= minHeight, 'maxHeight cannot be null'),
+        assert(maxHeight == null || minHeight == null || maxHeight >= minHeight,
+            'maxHeight cannot be null'),
         showCursor = showCursor ?? true,
         super(key: key);
 
@@ -94,7 +95,10 @@ class RawEditor extends StatefulWidget {
 }
 
 class RawEditorState extends EditorState
-    with AutomaticKeepAliveClientMixin<RawEditor>, WidgetsBindingObserver, TickerProviderStateMixin<RawEditor>
+    with
+        AutomaticKeepAliveClientMixin<RawEditor>,
+        WidgetsBindingObserver,
+        TickerProviderStateMixin<RawEditor>
     implements TextSelectionDelegate, TextInputClient {
   final GlobalKey _editorKey = GlobalKey();
   final List<TextEditingValue> _sentRemoteValues = [];
@@ -112,7 +116,8 @@ class RawEditorState extends EditorState
   bool _didAutoFocus = false;
   bool _keyboardVisible = false;
   DefaultStyles? _styles;
-  final ClipboardStatusNotifier? _clipboardStatus = kIsWeb ? null : ClipboardStatusNotifier();
+  final ClipboardStatusNotifier? _clipboardStatus =
+      kIsWeb ? null : ClipboardStatusNotifier();
   final LayerLink _toolbarLayerLink = LayerLink();
   final LayerLink _startHandleLayerLink = LayerLink();
   final LayerLink _endHandleLayerLink = LayerLink();
@@ -160,52 +165,79 @@ class RawEditorState extends EditorState
         downKey = key == LogicalKeyboardKey.arrowDown;
 
     if ((rightKey || leftKey) && !(rightKey && leftKey)) {
-      newSelection = _jumpToBeginOrEndOfWord(newSelection, wordModifier, leftKey, rightKey, plainText, lineModifier, shift);
+      newSelection = _jumpToBeginOrEndOfWord(newSelection, wordModifier,
+          leftKey, rightKey, plainText, lineModifier, shift);
     }
 
     if (downKey || upKey) {
-      newSelection = _handleMovingCursorVertically(upKey, downKey, shift, selection, newSelection, plainText);
+      newSelection = _handleMovingCursorVertically(
+          upKey, downKey, shift, selection, newSelection, plainText);
     }
 
     if (!shift) {
-      newSelection = _placeCollapsedSelection(selection, newSelection, leftKey, rightKey);
+      newSelection =
+          _placeCollapsedSelection(selection, newSelection, leftKey, rightKey);
     }
 
     widget.controller.updateSelection(newSelection, ChangeSource.LOCAL);
   }
 
-  TextSelection _placeCollapsedSelection(TextSelection selection, TextSelection newSelection, bool leftKey, bool rightKey) {
+  TextSelection _placeCollapsedSelection(TextSelection selection,
+      TextSelection newSelection, bool leftKey, bool rightKey) {
     var newOffset = newSelection.extentOffset;
     if (!selection.isCollapsed) {
       if (leftKey) {
-        newOffset = newSelection.baseOffset < newSelection.extentOffset ? newSelection.baseOffset : newSelection.extentOffset;
+        newOffset = newSelection.baseOffset < newSelection.extentOffset
+            ? newSelection.baseOffset
+            : newSelection.extentOffset;
       } else if (rightKey) {
-        newOffset = newSelection.baseOffset > newSelection.extentOffset ? newSelection.baseOffset : newSelection.extentOffset;
+        newOffset = newSelection.baseOffset > newSelection.extentOffset
+            ? newSelection.baseOffset
+            : newSelection.extentOffset;
       }
     }
     return TextSelection.fromPosition(TextPosition(offset: newOffset));
   }
 
-  TextSelection _handleMovingCursorVertically(bool upKey, bool downKey, bool shift, TextSelection selection, TextSelection newSelection, String plainText) {
-    final originPosition = TextPosition(offset: upKey ? selection.baseOffset : selection.extentOffset);
+  TextSelection _handleMovingCursorVertically(
+      bool upKey,
+      bool downKey,
+      bool shift,
+      TextSelection selection,
+      TextSelection newSelection,
+      String plainText) {
+    final originPosition = TextPosition(
+        offset: upKey ? selection.baseOffset : selection.extentOffset);
 
     final child = getRenderEditor()!.childAtPosition(originPosition);
-    final localPosition = TextPosition(offset: originPosition.offset - child.getContainer().documentOffset);
+    final localPosition = TextPosition(
+        offset: originPosition.offset - child.getContainer().documentOffset);
 
-    var position = upKey ? child.getPositionAbove(localPosition) : child.getPositionBelow(localPosition);
+    var position = upKey
+        ? child.getPositionAbove(localPosition)
+        : child.getPositionBelow(localPosition);
 
     if (position == null) {
-      final sibling = upKey ? getRenderEditor()!.childBefore(child) : getRenderEditor()!.childAfter(child);
+      final sibling = upKey
+          ? getRenderEditor()!.childBefore(child)
+          : getRenderEditor()!.childAfter(child);
       if (sibling == null) {
         position = TextPosition(offset: upKey ? 0 : plainText.length - 1);
       } else {
         final finalOffset = Offset(
-            child.getOffsetForCaret(localPosition).dx, sibling.getOffsetForCaret(TextPosition(offset: upKey ? sibling.getContainer().length - 1 : 0)).dy);
+            child.getOffsetForCaret(localPosition).dx,
+            sibling
+                .getOffsetForCaret(TextPosition(
+                    offset: upKey ? sibling.getContainer().length - 1 : 0))
+                .dy);
         final siblingPosition = sibling.getPositionForOffset(finalOffset);
-        position = TextPosition(offset: sibling.getContainer().documentOffset + siblingPosition.offset);
+        position = TextPosition(
+            offset:
+                sibling.getContainer().documentOffset + siblingPosition.offset);
       }
     } else {
-      position = TextPosition(offset: child.getContainer().documentOffset + position.offset);
+      position = TextPosition(
+          offset: child.getContainer().documentOffset + position.offset);
     }
 
     if (position.offset == newSelection.extentOffset) {
@@ -229,29 +261,46 @@ class RawEditorState extends EditorState
   }
 
   TextSelection _jumpToBeginOrEndOfWord(
-      TextSelection newSelection, bool wordModifier, bool leftKey, bool rightKey, String plainText, bool lineModifier, bool shift) {
+      TextSelection newSelection,
+      bool wordModifier,
+      bool leftKey,
+      bool rightKey,
+      String plainText,
+      bool lineModifier,
+      bool shift) {
     if (wordModifier) {
       if (leftKey) {
-        final textSelection = getRenderEditor()!.selectWordAtPosition(TextPosition(offset: _previousCharacter(newSelection.extentOffset, plainText, false)));
+        final textSelection = getRenderEditor()!.selectWordAtPosition(
+            TextPosition(
+                offset: _previousCharacter(
+                    newSelection.extentOffset, plainText, false)));
         return newSelection.copyWith(extentOffset: textSelection.baseOffset);
       }
-      final textSelection = getRenderEditor()!.selectWordAtPosition(TextPosition(offset: _nextCharacter(newSelection.extentOffset, plainText, false)));
+      final textSelection = getRenderEditor()!.selectWordAtPosition(
+          TextPosition(
+              offset:
+                  _nextCharacter(newSelection.extentOffset, plainText, false)));
       return newSelection.copyWith(extentOffset: textSelection.extentOffset);
     } else if (lineModifier) {
       if (leftKey) {
-        final textSelection = getRenderEditor()!.selectLineAtPosition(TextPosition(offset: _previousCharacter(newSelection.extentOffset, plainText, false)));
+        final textSelection = getRenderEditor()!.selectLineAtPosition(
+            TextPosition(
+                offset: _previousCharacter(
+                    newSelection.extentOffset, plainText, false)));
         return newSelection.copyWith(extentOffset: textSelection.baseOffset);
       }
       final startPoint = newSelection.extentOffset;
       if (startPoint < plainText.length) {
-        final textSelection = getRenderEditor()!.selectLineAtPosition(TextPosition(offset: startPoint));
+        final textSelection = getRenderEditor()!
+            .selectLineAtPosition(TextPosition(offset: startPoint));
         return newSelection.copyWith(extentOffset: textSelection.extentOffset);
       }
       return newSelection;
     }
 
     if (rightKey && newSelection.extentOffset < plainText.length) {
-      final nextExtent = _nextCharacter(newSelection.extentOffset, plainText, true);
+      final nextExtent =
+          _nextCharacter(newSelection.extentOffset, plainText, true);
       final distance = nextExtent - newSelection.extentOffset;
       newSelection = newSelection.copyWith(extentOffset: nextExtent);
       if (shift) {
@@ -261,7 +310,8 @@ class RawEditorState extends EditorState
     }
 
     if (leftKey && newSelection.extentOffset > 0) {
-      final previousExtent = _previousCharacter(newSelection.extentOffset, plainText, true);
+      final previousExtent =
+          _previousCharacter(newSelection.extentOffset, plainText, true);
       final distance = newSelection.extentOffset - previousExtent;
       newSelection = newSelection.copyWith(extentOffset: previousExtent);
       if (shift) {
@@ -301,7 +351,9 @@ class RawEditorState extends EditorState
     var count = 0;
     int? lastNonWhitespace;
     for (final currentString in string.characters) {
-      if (!includeWhitespace && !WHITE_SPACE.contains(currentString.characters.first.toString().codeUnitAt(0))) {
+      if (!includeWhitespace &&
+          !WHITE_SPACE.contains(
+              currentString.characters.first.toString().codeUnitAt(0))) {
         lastNonWhitespace = count;
       }
       if (count + currentString.length >= index) {
@@ -312,7 +364,8 @@ class RawEditorState extends EditorState
     return 0;
   }
 
-  bool get hasConnection => _textInputConnection != null && _textInputConnection!.attached;
+  bool get hasConnection =>
+      _textInputConnection != null && _textInputConnection!.attached;
 
   void openConnectionIfNeeded() {
     if (!shouldCreateInputConnection) {
@@ -363,7 +416,8 @@ class RawEditorState extends EditorState
       return;
     }
 
-    final shouldRemember = textEditingValue.text != _lastKnownRemoteTextEditingValue!.text;
+    final shouldRemember =
+        textEditingValue.text != _lastKnownRemoteTextEditingValue!.text;
     _lastKnownRemoteTextEditingValue = actualValue;
     _textInputConnection!.setEditingState(actualValue);
     if (shouldRemember) {
@@ -372,7 +426,8 @@ class RawEditorState extends EditorState
   }
 
   @override
-  TextEditingValue? get currentTextEditingValue => _lastKnownRemoteTextEditingValue;
+  TextEditingValue? get currentTextEditingValue =>
+      _lastKnownRemoteTextEditingValue;
 
   @override
   AutofillScope? get currentAutofillScope => null;
@@ -392,7 +447,8 @@ class RawEditorState extends EditorState
       return;
     }
 
-    if (_lastKnownRemoteTextEditingValue!.text == value.text && _lastKnownRemoteTextEditingValue!.selection == value.selection) {
+    if (_lastKnownRemoteTextEditingValue!.text == value.text &&
+        _lastKnownRemoteTextEditingValue!.selection == value.selection) {
       _lastKnownRemoteTextEditingValue = value;
       return;
     }
@@ -403,7 +459,8 @@ class RawEditorState extends EditorState
     final text = value.text;
     final cursorPosition = value.selection.extentOffset;
     final diff = getDiff(oldText, text, cursorPosition);
-    widget.controller.replaceText(diff.start, diff.deleted.length, diff.inserted, value.selection);
+    widget.controller.replaceText(
+        diff.start, diff.deleted.length, diff.inserted, value.selection);
   }
 
   @override
@@ -413,12 +470,6 @@ class RawEditorState extends EditorState
 
   @override
   set textEditingValue(TextEditingValue value) {
-    // userUpdateTextEditingValue(value, SelectionChangedCause.keyboard);
-    setTextEditingValue(value);
-  }
-
-  @override
-  void userUpdateTextEditingValue(TextEditingValue value, SelectionChangedCause cause) {
     setTextEditingValue(value);
   }
 
@@ -459,8 +510,11 @@ class RawEditorState extends EditorState
     super.build(context);
 
     var _doc = widget.controller.document;
-    if (_doc.isEmpty() && !widget.focusNode.hasFocus && widget.placeholder != null) {
-      _doc = Document.fromJson(jsonDecode('[{"attributes":{"placeholder":true},"insert":"${widget.placeholder}\\n"}]'));
+    if (_doc.isEmpty() &&
+        !widget.focusNode.hasFocus &&
+        widget.placeholder != null) {
+      _doc = Document.fromJson(jsonDecode(
+          '[{"attributes":{"placeholder":true},"insert":"${widget.placeholder}\\n"}]'));
     }
 
     Widget child = CompositedTransformTarget(
@@ -483,7 +537,8 @@ class RawEditorState extends EditorState
     );
 
     if (widget.scrollable) {
-      final baselinePadding = EdgeInsets.only(top: _styles!.paragraph!.verticalSpacing.item1);
+      final baselinePadding =
+          EdgeInsets.only(top: _styles!.paragraph!.verticalSpacing.item1);
       child = BaselineProxy(
         textStyle: _styles!.paragraph!.style,
         padding: baselinePadding,
@@ -495,8 +550,11 @@ class RawEditorState extends EditorState
       );
     }
 
-    final constraints =
-        widget.expands ? const BoxConstraints.expand() : BoxConstraints(minHeight: widget.minHeight ?? 0.0, maxHeight: widget.maxHeight ?? double.infinity);
+    final constraints = widget.expands
+        ? const BoxConstraints.expand()
+        : BoxConstraints(
+            minHeight: widget.minHeight ?? 0.0,
+            maxHeight: widget.maxHeight ?? double.infinity);
 
     return QuillStyles(
       data: _styles!,
@@ -510,7 +568,8 @@ class RawEditorState extends EditorState
     );
   }
 
-  void _handleSelectionChanged(TextSelection selection, SelectionChangedCause cause) {
+  void _handleSelectionChanged(
+      TextSelection selection, SelectionChangedCause cause) {
     widget.controller.updateSelection(selection, ChangeSource.LOCAL);
 
     _selectionOverlay?.handlesVisible = _shouldShowSelectionHandles();
@@ -551,7 +610,9 @@ class RawEditorState extends EditorState
           _styles,
           widget.enableInteractiveSelection,
           _hasFocus,
-          attrs.containsKey(Attribute.codeBlock.key) ? const EdgeInsets.all(16) : null,
+          attrs.containsKey(Attribute.codeBlock.key)
+              ? const EdgeInsets.all(16)
+              : null,
           widget.embedBuilder,
           _cursorCont,
           indentLevelCounts,
@@ -565,19 +626,32 @@ class RawEditorState extends EditorState
     return result;
   }
 
-  EditableTextLine _getEditableTextLineFromNode(Line node, BuildContext context) {
+  EditableTextLine _getEditableTextLineFromNode(
+      Line node, BuildContext context) {
     final textLine = TextLine(
       line: node,
       textDirection: _textDirection,
       embedBuilder: widget.embedBuilder,
       styles: _styles!,
     );
-    final editableTextLine = EditableTextLine(node, null, textLine, 0, _getVerticalSpacingForLine(node, _styles), _textDirection, widget.controller.selection,
-        widget.selectionColor, widget.enableInteractiveSelection, _hasFocus, MediaQuery.of(context).devicePixelRatio, _cursorCont);
+    final editableTextLine = EditableTextLine(
+        node,
+        null,
+        textLine,
+        0,
+        _getVerticalSpacingForLine(node, _styles),
+        _textDirection,
+        widget.controller.selection,
+        widget.selectionColor,
+        widget.enableInteractiveSelection,
+        _hasFocus,
+        MediaQuery.of(context).devicePixelRatio,
+        _cursorCont);
     return editableTextLine;
   }
 
-  Tuple2<double, double> _getVerticalSpacingForLine(Line line, DefaultStyles? defaultStyles) {
+  Tuple2<double, double> _getVerticalSpacingForLine(
+      Line line, DefaultStyles? defaultStyles) {
     final attrs = line.style.attributes;
     if (attrs.containsKey(Attribute.header.key)) {
       final int? level = attrs[Attribute.header.key]!.value;
@@ -596,7 +670,8 @@ class RawEditorState extends EditorState
     return defaultStyles!.paragraph!.verticalSpacing;
   }
 
-  Tuple2<double, double> _getVerticalSpacingForBlock(Block node, DefaultStyles? defaultStyles) {
+  Tuple2<double, double> _getVerticalSpacingForBlock(
+      Block node, DefaultStyles? defaultStyles) {
     final attrs = node.style.attributes;
     if (attrs.containsKey(Attribute.blockQuote.key)) {
       return defaultStyles!.quote!.verticalSpacing;
@@ -641,7 +716,8 @@ class RawEditorState extends EditorState
     } else {
       _keyboardVisibilityController = KeyboardVisibilityController();
       _keyboardVisible = _keyboardVisibilityController!.isVisible;
-      _keyboardVisibilitySubscription = _keyboardVisibilityController?.onChange.listen((visible) {
+      _keyboardVisibilitySubscription =
+          _keyboardVisibilityController?.onChange.listen((visible) {
         _keyboardVisible = visible;
         if (visible) {
           _onChangeTextEditingValue();
@@ -649,7 +725,8 @@ class RawEditorState extends EditorState
       });
     }
 
-    _focusAttachment = widget.focusNode.attach(context, onKey: (node, event) => _keyboardListener.handleRawKeyEvent(event));
+    _focusAttachment = widget.focusNode.attach(context,
+        onKey: (node, event) => _keyboardListener.handleRawKeyEvent(event));
     widget.focusNode.addListener(_handleFocusChanged);
   }
 
@@ -658,7 +735,9 @@ class RawEditorState extends EditorState
     super.didChangeDependencies();
     final parentStyles = QuillStyles.getStyles(context, true);
     final defaultStyles = DefaultStyles.getInstance(context);
-    _styles = (parentStyles != null) ? defaultStyles.merge(parentStyles) : defaultStyles;
+    _styles = (parentStyles != null)
+        ? defaultStyles.merge(parentStyles)
+        : defaultStyles;
 
     if (widget.customStyles != null) {
       _styles = _styles!.merge(widget.customStyles!);
@@ -692,7 +771,8 @@ class RawEditorState extends EditorState
     if (widget.focusNode != oldWidget.focusNode) {
       oldWidget.focusNode.removeListener(_handleFocusChanged);
       _focusAttachment?.detach();
-      _focusAttachment = widget.focusNode.attach(context, onKey: (node, event) => _keyboardListener.handleRawKeyEvent(event));
+      _focusAttachment = widget.focusNode.attach(context,
+          onKey: (node, event) => _keyboardListener.handleRawKeyEvent(event));
       widget.focusNode.addListener(_handleFocusChanged);
       updateKeepAlive();
     }
@@ -712,7 +792,8 @@ class RawEditorState extends EditorState
   }
 
   bool _shouldShowSelectionHandles() {
-    return widget.showSelectionHandles && !widget.controller.selection.isCollapsed;
+    return widget.showSelectionHandles &&
+        !widget.controller.selection.isCollapsed;
   }
 
   void handleDelete(bool forward) {
@@ -723,7 +804,8 @@ class RawEditorState extends EditorState
     var textAfter = selection.textAfter(plainText);
     if (selection.isCollapsed) {
       if (!forward && textBefore.isNotEmpty) {
-        final characterBoundary = _previousCharacter(textBefore.length, textBefore, true);
+        final characterBoundary =
+            _previousCharacter(textBefore.length, textBefore, true);
         textBefore = textBefore.substring(0, characterBoundary);
         cursorPosition = characterBoundary;
       }
@@ -748,7 +830,8 @@ class RawEditorState extends EditorState
     final plainText = textEditingValue.text;
     if (shortcut == InputShortcut.COPY) {
       if (!selection.isCollapsed) {
-        await Clipboard.setData(ClipboardData(text: selection.textInside(plainText)));
+        await Clipboard.setData(
+            ClipboardData(text: selection.textInside(plainText)));
       }
       return;
     }
@@ -765,7 +848,8 @@ class RawEditorState extends EditorState
         );
 
         textEditingValue = TextEditingValue(
-          text: selection.textBefore(plainText) + selection.textAfter(plainText),
+          text:
+              selection.textBefore(plainText) + selection.textAfter(plainText),
           selection: TextSelection.collapsed(offset: selection.start),
         );
       }
@@ -783,7 +867,8 @@ class RawEditorState extends EditorState
       }
       return;
     }
-    if (shortcut == InputShortcut.SELECT_ALL && widget.enableInteractiveSelection) {
+    if (shortcut == InputShortcut.SELECT_ALL &&
+        widget.enableInteractiveSelection) {
       widget.controller.updateSelection(
           selection.copyWith(
             baseOffset: 0,
@@ -842,14 +927,16 @@ class RawEditorState extends EditorState
       return;
     }
     _showCaretOnScreen();
-    _cursorCont.startOrStopCursorTimerIfNeeded(_hasFocus, widget.controller.selection);
+    _cursorCont.startOrStopCursorTimerIfNeeded(
+        _hasFocus, widget.controller.selection);
     if (hasConnection) {
       _cursorCont
         ..stopCursorTimer(resetCharTicks: false)
         ..startCursorTimer();
     }
 
-    SchedulerBinding.instance!.addPostFrameCallback((_) => _updateOrDisposeSelectionOverlayIfNeeded());
+    SchedulerBinding.instance!.addPostFrameCallback(
+        (_) => _updateOrDisposeSelectionOverlayIfNeeded());
     if (mounted) {
       setState(() {
         // Use widget.controller.value in build()
@@ -892,7 +979,8 @@ class RawEditorState extends EditorState
 
   void _handleFocusChanged() {
     openOrCloseConnection();
-    _cursorCont.startOrStopCursorTimerIfNeeded(_hasFocus, widget.controller.selection);
+    _cursorCont.startOrStopCursorTimerIfNeeded(
+        _hasFocus, widget.controller.selection);
     _updateOrDisposeSelectionOverlayIfNeeded();
     if (_hasFocus) {
       WidgetsBinding.instance!.addObserver(this);
@@ -925,7 +1013,8 @@ class RawEditorState extends EditorState
 
         final viewport = RenderAbstractViewport.of(getRenderEditor());
 
-        final editorOffset = getRenderEditor()!.localToGlobal(const Offset(0, 0), ancestor: viewport);
+        final editorOffset = getRenderEditor()!
+            .localToGlobal(const Offset(0, 0), ancestor: viewport);
         final offsetInViewport = _scrollController!.offset + editorOffset.dy;
 
         final offset = getRenderEditor()!.getOffsetToRevealCursor(
@@ -961,7 +1050,7 @@ class RawEditorState extends EditorState
   }
 
   @override
-  void hideToolbar([bool hideHandles = true]) {
+  void hideToolbar() {
     if (getSelectionOverlay()?.toolbar != null) {
       getSelectionOverlay()?.hideToolbar();
     }
@@ -1009,7 +1098,8 @@ class RawEditorState extends EditorState
       final value = textEditingValue;
       final data = await Clipboard.getData(Clipboard.kTextPlain);
       if (data != null) {
-        final length = textEditingValue.selection.end - textEditingValue.selection.start;
+        final length =
+            textEditingValue.selection.end - textEditingValue.selection.start;
         widget.controller.replaceText(
           value.selection.start,
           length,
@@ -1017,7 +1107,10 @@ class RawEditorState extends EditorState
           value.selection,
         );
         // move cursor to the end of pasted text selection
-        widget.controller.updateSelection(TextSelection.collapsed(offset: value.selection.start + data.text!.length), ChangeSource.LOCAL);
+        widget.controller.updateSelection(
+            TextSelection.collapsed(
+                offset: value.selection.start + data.text!.length),
+            ChangeSource.LOCAL);
       }
     }
   }
@@ -1027,7 +1120,8 @@ class RawEditorState extends EditorState
     if (data == null) {
       return false;
     }
-    return textEditingValue.text.length - value.text.length == data.text!.length;
+    return textEditingValue.text.length - value.text.length ==
+        data.text!.length;
   }
 
   @override
@@ -1103,7 +1197,8 @@ class _Editor extends MultiChildRenderObjectWidget {
   }
 
   @override
-  void updateRenderObject(BuildContext context, covariant RenderEditor renderObject) {
+  void updateRenderObject(
+      BuildContext context, covariant RenderEditor renderObject) {
     renderObject
       ..document = document
       ..setContainer(document.root)
