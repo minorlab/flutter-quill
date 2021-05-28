@@ -624,11 +624,12 @@ class RenderEditableTextLine extends RenderEditableBox {
     final horizontalPadding = _resolvedPadding!.left + _resolvedPadding!.right;
     final verticalPadding = _resolvedPadding!.top + _resolvedPadding!.bottom;
     final leadingWidth = _leading == null
-        ? 0.0
-        : _leading!.getMinIntrinsicWidth(height - verticalPadding).floorToDouble();
+        ? 0
+        : _leading!.getMinIntrinsicWidth(height - verticalPadding) as int;
     final bodyWidth = _body == null
-        ? 0.0
-        : _body!.getMinIntrinsicWidth(math.max(0, height - verticalPadding)).floorToDouble();
+        ? 0
+        : _body!.getMinIntrinsicWidth(math.max(0, height - verticalPadding))
+            as int;
     return horizontalPadding + leadingWidth + bodyWidth;
   }
 
@@ -638,12 +639,12 @@ class RenderEditableTextLine extends RenderEditableBox {
     final horizontalPadding = _resolvedPadding!.left + _resolvedPadding!.right;
     final verticalPadding = _resolvedPadding!.top + _resolvedPadding!.bottom;
     final leadingWidth = _leading == null
-        ? 0.0
-        : _leading!.getMaxIntrinsicWidth(height - verticalPadding).floorToDouble();
+        ? 0
+        : _leading!.getMaxIntrinsicWidth(height - verticalPadding) as int;
     final bodyWidth = _body == null
-        ? 0.0
-        : _body!.getMaxIntrinsicWidth(math.max(0, height - verticalPadding)).floorToDouble()
-    ;
+        ? 0
+        : _body!.getMaxIntrinsicWidth(math.max(0, height - verticalPadding))
+            as int;
     return horizontalPadding + leadingWidth + bodyWidth;
   }
 
